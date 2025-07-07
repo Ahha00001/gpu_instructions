@@ -1,5 +1,5 @@
 
-from data.data_ready import create_dataloaders
+from oxford_pet.data_ready import create_dataloaders
 from train.dino_train import train_dino
 
 synthetic_loader, real_loader = create_dataloaders(batch_size=24, num_workers=4)
