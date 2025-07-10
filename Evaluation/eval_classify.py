@@ -3,7 +3,9 @@ import torch.nn as nn
 import torch.optim as optim
 import os
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, recall_score, f1_score
+
+from torch.utils.tensorboard import SummaryWriter
 
 class LinearClassifier(nn.Module):
     def __init__(self, feature_dim, num_classes):
@@ -28,6 +30,11 @@ class FlexibleMLPClassifier(nn.Module):
     def forward(self, x):
         return self.model(x)
 
+def top_k_accuracy(output, labels, k=1):
+    _, pred = output.topk(k, dim=1)
+    correct = pred.eq(labels.view(-1, 1).expand_as(pred))
+    return correct.any(dim=1).float().mean().item()
+
 def train_classifier(train_features, train_labels, val_features, val_labels,
                      num_classes, feature_dim, use_mlp=False, max_epochs=30, patience=5, save_dir="checkpoints/real_classifier"):
     
@@ -41,6 +48,7 @@ def train_classifier(train_features, train_labels, val_features, val_labels,
     best_model = None
     wait = 0
     train_acc_list, val_acc_list = [], []
+    writer = SummaryWriter(log_dir="logs")
 
     for epoch in range(max_epochs):
         model.train()
@@ -59,6 +67,14 @@ def train_classifier(train_features, train_labels, val_features, val_labels,
         val_preds = torch.argmax(val_output, dim=1)
         val_acc = (val_preds == val_labels).float().mean()
 
+        # Top-1 and Top-5 accuracy
+        val_top1 = top_k_accuracy(val_output, val_labels, k=1)
+        val_top5 = top_k_accuracy(val_output, val_labels, k=5)
+
+        # Recall and F1-score (macro)
+        recall = recall_score(val_labels.cpu(), val_preds.cpu(), average='macro', zero_division=0)
+        fscore = f1_score(val_labels.cpu(), val_preds.cpu(), average='macro', zero_division=0)
+
         train_acc_list.append(train_acc.item())
         val_acc_list.append(val_acc.item()) 
 
@@ -72,7 +88,12 @@ def train_classifier(train_features, train_labels, val_features, val_labels,
             if wait >= patience:
                 break
         
-        model.load_state_dict(best_model)  # Load best model for next epoch
+        writer.add_scalar("Train/Accuracy", train_acc.item(), epoch)
+        writer.add_scalar("Validation/Accuracy", val_acc.item(), epoch)
+        writer.add_scalar("Validation/Top1", val_top1, epoch)
+        writer.add_scalar("Validation/Top5", val_top5, epoch)
+        writer.add_scalar("Validation/Recall", recall, epoch)
+        writer.add_scalar("Validation/F1", fscore, epoch)
 
         if save_dir:
             torch.save(model.state_dict(), save_dir + f"/epoch_{epoch+1}_val_acc_{val_acc:.4f}.pth")  
