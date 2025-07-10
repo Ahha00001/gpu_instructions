@@ -1,9 +1,9 @@
 import torch.nn.functional as F
 
-def compute_cosine_similarity(query, db):
-    query = F.normalize(query, dim=1)
-    db = F.normalize(db, dim=1)
-    return query @ db.T
+def compute_cosine_similarity(query_feats, db_feats):
+    query_norm = F.normalize(query_feats, dim=1)
+    db_norm = F.normalize(db_feats, dim=1)
+    return query_norm @ db_norm.T
 
 def evaluate_retrieval(query_feats, db_feats, query_labels, db_labels, k=5):
     sim_matrix = compute_cosine_similarity(query_feats, db_feats)

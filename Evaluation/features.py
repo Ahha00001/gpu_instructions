@@ -12,6 +12,6 @@ def extract_features(encoder, dataloader, device):
             imgs = imgs.to(device)
             feats = encoder(imgs)
             all_features.append(feats.cpu())
-            all_labels.append(labels)
+            all_labels.append(labels.cpu())
 
     return torch.cat(all_features), torch.cat(all_labels)
