@@ -3,7 +3,7 @@ docker_image            = nvidia/cuda:11.4.3-runtime-ubuntu20.04
 executable              = execute.sh
 
 # Python file to run, can also include arguments
-arguments               = evaluation/eval.py
+arguments               = eval.py 
 
 # Paths to output, error, and log files
 # Make sure all the parent directories exist
